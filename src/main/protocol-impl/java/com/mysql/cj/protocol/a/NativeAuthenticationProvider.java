@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.mysql.cj.Constants;
 import com.mysql.cj.Messages;
@@ -473,6 +474,11 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                 // read OK packet
                 OkPacket ok = OkPacket.parse(last_received, null);
                 serverSession.setStatusFlags(ok.getStatusFlags(), true);
+                RedirectionData redirect = RedirectionData.parseOkInfo(ok.getInfo());
+
+                if (Objects.nonNull(redirect)) {
+                    // handle redirect data
+                }
 
                 // if OK packet then finish handshake
                 plugin.destroy();
