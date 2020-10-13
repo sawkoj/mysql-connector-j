@@ -60,7 +60,7 @@ import com.mysql.cj.protocol.a.authentication.MysqlNativePasswordPlugin;
 import com.mysql.cj.protocol.a.authentication.MysqlOldPasswordPlugin;
 import com.mysql.cj.protocol.a.authentication.Sha256PasswordPlugin;
 import com.mysql.cj.protocol.a.redirection.RedirectionData;
-import com.mysql.cj.protocol.a.redirection.RedirectionService;
+import com.mysql.cj.protocol.a.redirection.RedirectionParser;
 import com.mysql.cj.protocol.a.result.OkPacket;
 import com.mysql.cj.util.StringUtils;
 
@@ -476,7 +476,7 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                 // read OK packet
                 OkPacket ok = OkPacket.parse(last_received, null);
                 serverSession.setStatusFlags(ok.getStatusFlags(), true);
-                RedirectionData redirect = RedirectionService.parseOkInfo(ok.getInfo());
+                RedirectionData redirect = RedirectionParser.parseOkInfo(ok.getInfo());
 
                 if (Objects.nonNull(redirect)) {
                     // handle redirect data

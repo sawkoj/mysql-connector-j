@@ -2,7 +2,7 @@ package com.mysql.cj.protocol.a.redirection;
 
 import com.mysql.cj.util.StringUtils;
 
-public class RedirectionService {
+public class RedirectionParser {
     public static final String REDIRECT_DATA_MESSAGE_BEGINNING = "Location: ";
     public static final String REDIRECT_DATA_MESSAGE_END = "\n";
 
@@ -52,10 +52,5 @@ public class RedirectionService {
             }
         }
         return null;
-    }
-
-    public static void main(String... args) {
-        RedirectionData redirectionData1 = parseOkInfo("Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10\n");
-        RedirectionData redirectionData2 = parseOkInfo("Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10");
     }
 }
