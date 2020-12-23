@@ -52,6 +52,7 @@ import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +76,7 @@ import com.mysql.cj.conf.url.XDevApiDnsSrvConnectionUrl;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.InvalidConnectionAttributeException;
 import com.mysql.cj.exceptions.WrongArgumentException;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 
 public class ConnectionUrlTest {
     protected static <EX extends Throwable> EX assertThrows(Class<EX> throwable, Callable<?> testRoutine) {
@@ -1672,5 +1674,50 @@ public class ConnectionUrlTest {
             assertEquals("user1", hi.getUser());
             assertEquals("sql_mode='IGNORE_SPACE,ANSI',FOREIGN_KEY_CHECKS=0", hi.getHostProperties().get("sessionVariables"));
         }
+    }
+
+	/**
+	 * Test used to ConnectionStringGenerator to verify if any acceptable single
+	 * connection sting is handle by
+	 * ConnectionUrlParser.replaceOriginalUrlByRedirectionData()
+	 */
+	@Test
+	void testReplaceOriginalUrlByRedirectionData() {
+		RedirectionData redirectionData = new RedirectionData("newHost", 9999, "newUser", 0, new HashMap<>());
+		ConnectionStringGenerator csg = new ConnectionStringGenerator(ConnectionStringGenerator.UrlMode.SINGLE_HOST);
+		for (String cs : csg) {
+			ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(cs, new Properties());
+			String nCs = connectionUrl.getConnectionUrlParser().replaceOriginalUrlByRedirectionData(redirectionData,
+					connectionUrl.getMainHost());
+			HostInfo hostInfo = ConnectionUrl.getConnectionUrlInstance(nCs, new Properties()).getMainHost();
+			assertEquals(redirectionData.getHost(), hostInfo.getHost(),
+					"Incorrect host: " + hostInfo.getHost() + " redirect host: " + redirectionData.getHost());
+			assertEquals(redirectionData.getPort(), hostInfo.getPort(),
+					"Incorrect port: " + hostInfo.getPort() + " redirect port: " + redirectionData.getPort());
+			assertEquals(redirectionData.getUser(), hostInfo.getUser(),
+					"Incorrect user: " + hostInfo.getUser() + " redirect user: " + redirectionData.getUser());
+		}
+	}
+
+	/**
+	 * Test if ConnectionUrlParser.replaceOriginalUrlByRedirectionData for same
+	 * original and redirection user returns correct Connection String
+	 */
+	@Test
+	void testReplaceOriginalUrlByRedirectionDataSameUserName() {
+		RedirectionData redirectionData = new RedirectionData("mysql1", 1235, "johndoe", 1, new HashMap<>());
+		Stream.of("jdbc:mysql://mysql:1234/sakila?user=johndoe",
+				"jdbc:mysql://johndoe:secret@mysql:1234/sakila?user=johndoe",
+				"jdbc:mysql://(host=mysql,port=1234,user=johndoe)/sakila",
+				"jdbc:mysql://johndoe:secret@(host=mysql,port=1234)/sakila",
+				"jdbc:mysql://address=(host=mysql)(port=1234)(user=johndoe)/sakila",
+				"jdbc:mysql://johndoe:secret@address=(host=mysql)(port=1234)/sakila").forEach(cs -> {
+					ConnectionUrl connectionUrl = ConnectionUrl.getConnectionUrlInstance(cs, new Properties());
+					String nCs = connectionUrl.getConnectionUrlParser()
+							.replaceOriginalUrlByRedirectionData(redirectionData, connectionUrl.getMainHost());
+					HostInfo hostInfo = ConnectionUrl.getConnectionUrlInstance(nCs, new Properties()).getMainHost();
+					assertEquals(hostInfo.getHost(), redirectionData.getHost(), "Incorrect host for cs: " + cs);
+					assertEquals(hostInfo.getUser(), redirectionData.getUser(), "Incorrect user for cs: " + cs);
+				});
     }
 }

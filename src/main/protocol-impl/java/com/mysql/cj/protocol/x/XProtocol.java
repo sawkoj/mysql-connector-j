@@ -92,6 +92,7 @@ import com.mysql.cj.protocol.ServerCapabilities;
 import com.mysql.cj.protocol.ServerSession;
 import com.mysql.cj.protocol.SocketConnection;
 import com.mysql.cj.protocol.a.NativeSocketConnection;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 import com.mysql.cj.protocol.x.Notice.XSessionStateChanged;
 import com.mysql.cj.result.DefaultColumnDefinition;
 import com.mysql.cj.result.Field;
@@ -1010,6 +1011,16 @@ public class XProtocol extends AbstractProtocol<XMessage> implements Protocol<XM
             this.preparableStatementRefQueue = new ReferenceQueue<>();
             this.preparableStatementFinalizerReferences = new TreeMap<>();
         }
+    }
+
+    @Override
+    public void setRedirectionData(RedirectionData redirectionData) {
+        throw ExceptionFactory.createException(CJOperationNotSupportedException.class, "Not supported");
+    }
+
+    @Override
+    public RedirectionData getRedirectionData() {
+        throw ExceptionFactory.createException(CJOperationNotSupportedException.class, "Not supported");
     }
 
     @Override

@@ -479,7 +479,7 @@ public class NativeAuthenticationProvider implements AuthenticationProvider<Nati
                 RedirectionData redirect = RedirectionParser.parseOkInfo(ok.getInfo());
 
                 if (Objects.nonNull(redirect)) {
-                    // handle redirect data
+                    protocol.setRedirectionData(redirect);
                 }
 
                 // if OK packet then finish handshake

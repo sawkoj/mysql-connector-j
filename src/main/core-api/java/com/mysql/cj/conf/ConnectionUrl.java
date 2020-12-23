@@ -249,6 +249,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
     protected List<HostInfo> hosts = new ArrayList<>();
     protected Map<String, String> properties = new HashMap<>();
     ConnectionPropertiesTransform propertiesTransformer;
+    protected ConnectionUrlParser connectionUrlParser;
 
     /**
      * Static factory method that returns either a new instance of a {@link ConnectionUrl} or a cached one.
@@ -344,6 +345,7 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
     protected ConnectionUrl(ConnectionUrlParser connStrParser, Properties info) {
         this.originalConnStr = connStrParser.getDatabaseUrl();
         this.originalDatabase = connStrParser.getPath() == null ? "" : connStrParser.getPath();
+        this.connectionUrlParser = connStrParser;
         collectProperties(connStrParser, info); // Fill properties before filling hosts info.
         collectHostsInfo(connStrParser);
     }
@@ -817,6 +819,15 @@ public abstract class ConnectionUrl implements DatabaseUrlContainer {
         return srvRecords.stream().map(s -> buildHostInfo(s.getTarget(), s.getPort(), baseHostInfo.getUser(), baseHostInfo.getPassword(),
                 baseHostInfo.isPasswordless(), baseHostInfo.getHostProperties())).collect(Collectors.toList());
     }
+
+	/**
+	 * Return ConnectionUrlParser instance used to parse Connection String
+	 * 
+	 * @return ConnectionUrlParser instance
+	 */
+	public ConnectionUrlParser getConnectionUrlParser() {
+		return connectionUrlParser;
+	}
 
     /**
      * Returns a string representation of this object.

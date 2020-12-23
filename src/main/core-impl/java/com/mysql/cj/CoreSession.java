@@ -45,6 +45,7 @@ import com.mysql.cj.log.ProfilerEventHandler;
 import com.mysql.cj.protocol.Message;
 import com.mysql.cj.protocol.Protocol;
 import com.mysql.cj.protocol.ServerSession;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 import com.mysql.cj.util.Util;
 
 public abstract class CoreSession implements Session {
@@ -217,5 +218,10 @@ public abstract class CoreSession implements Session {
     @Override
     public String getQueryTimingUnits() {
         return this.protocol.getQueryTimingUnits();
+    }
+
+    @Override
+    public RedirectionData getRedirectionData() {
+        return this.protocol.getRedirectionData();
     }
 }

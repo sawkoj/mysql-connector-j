@@ -29,6 +29,10 @@
 
 package com.mysql.cj.conf;
 
+import static com.mysql.cj.conf.ConnectionUrlUtil.decode;
+import static com.mysql.cj.conf.ConnectionUrlUtil.processAddressHost;
+import static com.mysql.cj.conf.ConnectionUrlUtil.processHostKeyValue;
+import static com.mysql.cj.conf.ConnectionUrlUtil.processUrlProperties;
 import static com.mysql.cj.util.StringUtils.isNullOrEmpty;
 import static com.mysql.cj.util.StringUtils.safeTrim;
 
@@ -41,14 +45,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl.Type;
 import com.mysql.cj.exceptions.ExceptionFactory;
 import com.mysql.cj.exceptions.UnsupportedConnectionStringException;
 import com.mysql.cj.exceptions.WrongArgumentException;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 import com.mysql.cj.util.StringUtils;
 
 /**
@@ -94,9 +101,6 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
     private static final Pattern SCHEME_PTRN = Pattern.compile("(?<scheme>[\\w\\+:%]+).*");
     private static final Pattern HOST_LIST_PTRN = Pattern.compile("^\\[(?<hosts>.*)\\]$");
     private static final Pattern GENERIC_HOST_PTRN = Pattern.compile("^(?<host>.*?)(?::(?<port>[^:]*))?$");
-    private static final Pattern KEY_VALUE_HOST_PTRN = Pattern.compile("[,\\s]*(?<key>[\\w\\.\\-\\s%]*)(?:=(?<value>[^,]*))?");
-    private static final Pattern ADDRESS_EQUALS_HOST_PTRN = Pattern.compile("\\s*\\(\\s*(?<key>[\\w\\.\\-%]+)?\\s*(?:=(?<value>[^)]*))?\\)\\s*");
-    private static final Pattern PROPERTIES_PTRN = Pattern.compile("[&\\s]*(?<key>[\\w\\.\\-\\s%]*)(?:=(?<value>[^&]*))?");
 
     private final String baseConnectionString;
     private String scheme;
@@ -392,12 +396,20 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
      * @return the {@link HostInfo} instance containing the parsed information or <code>null</code> if unable to parse the host information
      */
     private HostInfo buildHostInfoResortingToKeyValueSyntaxParser(String user, String password, String hostInfo) {
+        hostInfo = prepareKeyValueHost(hostInfo);
+        if (Objects.isNull(hostInfo)) {
+            return null;
+        }
+        return new HostInfo(this, null, HostInfo.NO_PORT, user, password, processHostKeyValue(hostInfo));
+    }
+
+    private String prepareKeyValueHost(String hostInfo) {
         if (!hostInfo.startsWith(KEY_VALUE_HOST_INFO_OPENING_MARKER) || !hostInfo.endsWith(KEY_VALUE_HOST_INFO_CLOSING_MARKER)) {
             // This pattern won't work.
             return null;
         }
         hostInfo = hostInfo.substring(KEY_VALUE_HOST_INFO_OPENING_MARKER.length(), hostInfo.length() - KEY_VALUE_HOST_INFO_CLOSING_MARKER.length());
-        return new HostInfo(this, null, HostInfo.NO_PORT, user, password, processKeyValuePattern(KEY_VALUE_HOST_PTRN, hostInfo));
+        return hostInfo;
     }
 
     /**
@@ -412,13 +424,21 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
      * @return the {@link HostInfo} instance containing the parsed information or <code>null</code> if unable to parse the host information
      */
     private HostInfo buildHostInfoResortingToAddressEqualsSyntaxParser(String user, String password, String hostInfo) {
+        hostInfo = prepareAddressEqualsHost(hostInfo);
+        if (Objects.isNull(hostInfo)) {
+            return null;
+        }
+        return new HostInfo(this, null, HostInfo.NO_PORT, user, password, processAddressHost(hostInfo));
+    }
+
+    private String prepareAddressEqualsHost(String hostInfo) {
         int p = StringUtils.indexOfIgnoreCase(hostInfo, ADDRESS_EQUALS_HOST_INFO_PREFIX);
         if (p != 0) {
             // This pattern won't work.
             return null;
         }
         hostInfo = hostInfo.substring(p + ADDRESS_EQUALS_HOST_INFO_PREFIX.length()).trim();
-        return new HostInfo(this, null, HostInfo.NO_PORT, user, password, processKeyValuePattern(ADDRESS_EQUALS_HOST_PTRN, hostInfo));
+        return hostInfo;
     }
 
     /**
@@ -516,63 +536,7 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
             this.parsedProperties = new HashMap<>();
             return;
         }
-        this.parsedProperties = processKeyValuePattern(PROPERTIES_PTRN, this.query);
-    }
-
-    /**
-     * Takes a two-matching-groups (respectively named "key" and "value") pattern which is successively tested against the given string and produces a key/value
-     * map with the matched values. The given pattern must ensure that there are no leftovers between successive tests, i.e., the end of the previous match must
-     * coincide with the beginning of the next.
-     * 
-     * @param pattern
-     *            the regular expression pattern to match against to
-     * @param input
-     *            the input string
-     * @return a key/value map containing the matched values
-     */
-    private Map<String, String> processKeyValuePattern(Pattern pattern, String input) {
-        Matcher matcher = pattern.matcher(input);
-        int p = 0;
-        Map<String, String> kvMap = new HashMap<>();
-        while (matcher.find()) {
-            if (matcher.start() != p) {
-                throw ExceptionFactory.createException(WrongArgumentException.class,
-                        Messages.getString("ConnectionString.4", new Object[] { input.substring(p) }));
-            }
-            String key = decode(safeTrim(matcher.group("key")));
-            String value = decode(safeTrim(matcher.group("value")));
-            if (!isNullOrEmpty(key)) {
-                kvMap.put(key, value);
-            } else if (!isNullOrEmpty(value)) {
-                throw ExceptionFactory.createException(WrongArgumentException.class,
-                        Messages.getString("ConnectionString.4", new Object[] { input.substring(p) }));
-            }
-            p = matcher.end();
-        }
-        if (p != input.length()) {
-            throw ExceptionFactory.createException(WrongArgumentException.class, Messages.getString("ConnectionString.4", new Object[] { input.substring(p) }));
-        }
-        return kvMap;
-    }
-
-    /**
-     * URL-decode the given string.
-     * 
-     * @param text
-     *            the string to decode
-     * @return
-     *         the decoded string
-     */
-    private static String decode(String text) {
-        if (isNullOrEmpty(text)) {
-            return text;
-        }
-        try {
-            return URLDecoder.decode(text, StandardCharsets.UTF_8.name());
-        } catch (UnsupportedEncodingException e) {
-            // Won't happen.
-        }
-        return "";
+        this.parsedProperties = processUrlProperties(this.query);
     }
 
     /**
@@ -595,6 +559,113 @@ public class ConnectionUrlParser implements DatabaseUrlContainer {
         }
         return "";
     }
+
+	/**
+	 * Return modified original Connection String by info from redirection data
+	 * 
+	 * @param redirectionData
+	 *            redirection data got from server
+	 * @param hostInfo
+	 *            information about current host
+	 * @return modified Connection String
+	 */
+	public String replaceOriginalUrlByRedirectionData(RedirectionData redirectionData, HostInfo hostInfo) {
+		Pair<String, String> userHostPair = splitByUserInfoAndHostInfo(authority);
+		String userInfo = safeTrim(userHostPair.left);
+		if (!redirectionData.getUser().equals(hostInfo.getUser())) {
+			String password = !StringUtils.isNullOrEmpty(hostInfo.getPassword()) ? ":" + hostInfo.getPassword() : "";
+			userInfo = redirectionData.getUser() + password;
+		}
+		String host = replaceHost(redirectionData, userHostPair.right);
+		String query = buildNewQuery(redirectionData);
+		String authority = (!StringUtils.isNullOrEmpty(userInfo) ? userInfo + USER_HOST_SEPARATOR : "") + host;
+		return prepareNewConnectionUrl(authority, query);
+	}
+
+	private String prepareNewConnectionUrl(String authority, String query) {
+		StringBuilder newConnectionURL = new StringBuilder(this.scheme).append("//").append(authority).append("/");
+		if (!StringUtils.isNullOrEmpty(this.path)) {
+			newConnectionURL.append(this.path);
+		}
+		if (!StringUtils.isNullOrEmpty(query)) {
+			newConnectionURL.append("?").append(query);
+		}
+		return newConnectionURL.toString();
+	}
+
+	private String buildNewQuery(RedirectionData redirectionData) {
+		Map<String, String> redirectPropertiesMap = redirectionData.getProperties();
+		if (redirectPropertiesMap.isEmpty()) {
+			return this.query;
+		}
+		String redirectProperties = redirectPropertiesMap.entrySet().stream()
+				.map(kv -> kv.getKey() + "=" + kv.getValue()).collect(Collectors.joining("&"));
+		return redirectProperties + "&" + this.query;
+	}
+
+	private String replaceHost(RedirectionData redirectionHost, String connectionHostInfo) {
+		if (StringUtils.isNullOrEmpty(connectionHostInfo) || ConnectionUrlUtil.isHostUrlForm(connectionHostInfo)) {
+			return redirectionHost.getHost() + ":" + redirectionHost.getPort();
+		}
+		String host;
+		if (Objects.nonNull(host = handleKeyValueHost(redirectionHost, connectionHostInfo))) {
+			return host;
+		}
+		if (Objects.nonNull(host = handleAddressEqualsHost(redirectionHost, connectionHostInfo))) {
+			return host;
+		}
+		return redirectionHost.getHost() + ":" + redirectionHost.getPort();
+	}
+
+	private String handleAddressEqualsHost(RedirectionData redirectionHost, String connectionHostInfo) {
+		String addressEqualsHost = prepareAddressEqualsHost(connectionHostInfo);
+		if (Objects.isNull(addressEqualsHost)) {
+			return null;
+		}
+		Map<String, String> addressEqualsHostMap = processAddressHost(addressEqualsHost);
+		addressEqualsHostMap.put("host", redirectionHost.getHost());
+		addressEqualsHostMap.put("port", String.valueOf(redirectionHost.getPort()));
+		StringBuilder host = new StringBuilder("address=(host=").append(addressEqualsHostMap.get("host"))
+				.append(")(port=").append(addressEqualsHostMap.get("port")).append(")");
+		addressEqualsHostMap.remove("host");
+		addressEqualsHostMap.remove("port");
+		if (!addressEqualsHostMap.isEmpty()) {
+			host.append(addressEqualsHostMap.entrySet().stream().map(kv -> "(" + kv.getKey()
+					+ (!StringUtils.isNullOrEmpty(kv.getValue()) ? "=" + preparePropertyValue(kv.getValue()) : "")
+					+ ")").collect(Collectors.joining("")));
+		}
+		return host.toString();
+	}
+
+	private String handleKeyValueHost(RedirectionData redirectionHost, String connectionHostInfo) {
+		String keyValueHost = prepareKeyValueHost(connectionHostInfo);
+		if (Objects.isNull(keyValueHost)) {
+			return null;
+		}
+		Map<String, String> keyValueHostMap = processHostKeyValue(keyValueHost);
+		if (!keyValueHostMap.isEmpty()) {
+			keyValueHostMap.put("host", redirectionHost.getHost());
+			keyValueHostMap.put("port", String.valueOf(redirectionHost.getPort()));
+			StringBuilder host = new StringBuilder("(host=").append(keyValueHostMap.get("host")).append(",port=")
+					.append(keyValueHostMap.get("port"));
+			keyValueHostMap.remove("host");
+			keyValueHostMap.remove("port");
+			if (!keyValueHostMap.isEmpty()) {
+				host.append(",");
+				host.append(keyValueHostMap.entrySet().stream().map(kv -> kv.getKey()
+						+ (!StringUtils.isNullOrEmpty(kv.getValue()) ? "=" + preparePropertyValue(kv.getValue()) : ""))
+						.collect(Collectors.joining(",")));
+			}
+			return host.append(")").toString();
+		}
+		return null;
+	}
+
+	private String preparePropertyValue(String value) {
+		String nValue = value.replace("(", "%28");
+		nValue = nValue.replace(")", "%29");
+		return nValue;
+	}
 
     /**
      * Returns the original database URL that produced this connection string parser.

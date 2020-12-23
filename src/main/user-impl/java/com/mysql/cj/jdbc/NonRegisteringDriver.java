@@ -35,6 +35,7 @@ import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -43,6 +44,7 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.ConnectionUrl.Type;
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.PropertyDefinitions.RedirectionOption;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.ExceptionFactory;
@@ -51,6 +53,8 @@ import com.mysql.cj.exceptions.UnsupportedConnectionStringException;
 import com.mysql.cj.jdbc.ha.FailoverConnectionProxy;
 import com.mysql.cj.jdbc.ha.LoadBalancedConnectionProxy;
 import com.mysql.cj.jdbc.ha.ReplicationConnectionProxy;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
+import com.mysql.cj.protocol.a.redirection.RedirectionDataCache;
 import com.mysql.cj.util.StringUtils;
 
 /**
@@ -72,6 +76,8 @@ import com.mysql.cj.util.StringUtils;
  * </p>
  */
 public class NonRegisteringDriver implements java.sql.Driver {
+
+    private static RedirectionDataCache redirectionDataCache = RedirectionDataCache.getInstance();
 
     /*
      * Standardizes OS name information to align with other drivers/clients
@@ -195,7 +201,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
             ConnectionUrl conStr = ConnectionUrl.getConnectionUrlInstance(url, info);
             switch (conStr.getType()) {
                 case SINGLE_CONNECTION:
-                    return com.mysql.cj.jdbc.ConnectionImpl.getInstance(conStr.getMainHost());
+                    return getConnection(conStr, info);
 
                 case FAILOVER_CONNECTION:
                 case FAILOVER_DNS_SRV_CONNECTION:
@@ -302,5 +308,60 @@ public class NonRegisteringDriver implements java.sql.Driver {
     @Override
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException();
+    }
+
+    private JdbcConnection getConnection(ConnectionUrl connectionUrl, Properties info) throws SQLException {
+        HostInfo currentHost = connectionUrl.getMainHost();
+        JdbcConnection connection = ConnectionImpl.getInstance(currentHost);
+        String redirectionEnableProperty = currentHost.getHostProperties().get(PropertyKey.enableRedirect.toString());
+        if (RedirectionOption.ON.toString().equalsIgnoreCase(redirectionEnableProperty) ||
+                RedirectionOption.PREFERRED.toString().equalsIgnoreCase(redirectionEnableProperty)) {
+            RedirectionData redirectionData = connection.getSession().getRedirectionData();
+            if (Objects.isNull(redirectionData) &&
+                    RedirectionOption.ON.toString().equalsIgnoreCase(redirectionEnableProperty)) {
+                closeConnection(connection);
+                throw ExceptionFactory.createException(Messages.getString("Connection.RedirectFailedForRedirectEnableON"));
+            }
+            connection = getRedirectConnection(connectionUrl, info, connection, redirectionData);
+        }
+        return connection;
+    }
+
+    private JdbcConnection getRedirectConnection(ConnectionUrl connectionUrl, Properties info, JdbcConnection connection, RedirectionData redirectionData) throws SQLException {
+        JdbcConnection redirectConnection = connection;
+        HostInfo currentHost = connectionUrl.getMainHost();
+        while (Objects.nonNull(redirectionData)) {
+            redirectionDataCache.put(currentHost, redirectionData);
+            redirectionData = getCachedRedirectDataIfExists(redirectionData);
+            String redirectURL = connectionUrl.getConnectionUrlParser().replaceOriginalUrlByRedirectionData(redirectionData, currentHost);
+            currentHost = ConnectionUrl.getConnectionUrlInstance(redirectURL, info).getMainHost();
+            closeConnection(redirectConnection);
+            try {
+                redirectConnection = ConnectionImpl.getInstance(currentHost);
+            } catch (SQLException e) {
+                System.out.println("Redirection failed: host: " + currentHost.toString());
+                redirectConnection = ConnectionImpl.getInstance(connectionUrl.getMainHost());
+            }
+            redirectionData = redirectConnection.getSession().getRedirectionData();
+        }
+        return redirectConnection;
+    }
+
+    private RedirectionData getCachedRedirectDataIfExists(RedirectionData redirectionData) {
+        RedirectionData redirect = redirectionData, tempRedirect;
+        tempRedirect = redirectionDataCache.get(redirect);
+        while (Objects.nonNull(tempRedirect)) {
+            redirect = tempRedirect;
+            tempRedirect = redirectionDataCache.get(redirect);
+        }
+        return redirect;
+    }
+
+    private void closeConnection(JdbcConnection connection) {
+        try {
+            connection.close();
+        } catch (SQLException throwable) {
+            System.out.println("Can not connect original connection: " + throwable.getMessage());
+        }
     }
 }

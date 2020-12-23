@@ -39,6 +39,7 @@ import com.mysql.cj.TransactionEventHandler;
 import com.mysql.cj.conf.PropertySet;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.ExceptionInterceptor;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 
 /**
  * A protocol provides the facilities to communicate with a MySQL server.
@@ -280,4 +281,8 @@ public interface Protocol<M extends Message> {
     void reset();
 
     String getQueryTimingUnits();
+
+    void setRedirectionData(RedirectionData redirectionData);
+
+    RedirectionData getRedirectionData();
 }

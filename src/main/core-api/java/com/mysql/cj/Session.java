@@ -46,6 +46,7 @@ import com.mysql.cj.protocol.Message;
 import com.mysql.cj.protocol.Protocol;
 import com.mysql.cj.protocol.ResultBuilder;
 import com.mysql.cj.protocol.ServerSession;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 import com.mysql.cj.result.Row;
 
 /**
@@ -131,6 +132,8 @@ public interface Session {
     SocketAddress getRemoteSocketAddress();
 
     String getProcessHost();
+
+    RedirectionData getRedirectionData();
 
     /**
      * Add listener for this session status changes.

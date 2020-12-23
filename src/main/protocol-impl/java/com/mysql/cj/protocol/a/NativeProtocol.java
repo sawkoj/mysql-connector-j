@@ -121,6 +121,7 @@ import com.mysql.cj.protocol.SocketConnection;
 import com.mysql.cj.protocol.a.NativeConstants.IntegerDataType;
 import com.mysql.cj.protocol.a.NativeConstants.StringLengthDataType;
 import com.mysql.cj.protocol.a.NativeConstants.StringSelfDataType;
+import com.mysql.cj.protocol.a.redirection.RedirectionData;
 import com.mysql.cj.protocol.a.result.OkPacket;
 import com.mysql.cj.result.Field;
 import com.mysql.cj.result.IntegerValueFactory;
@@ -215,6 +216,8 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
     private static String jvmPlatformCharset = null;
 
     private NativeMessageBuilder commandBuilder = new NativeMessageBuilder(); // TODO use shared builder
+
+    private RedirectionData redirectionData;
 
     static {
         OutputStreamWriter outWriter = null;
@@ -2238,5 +2241,15 @@ public class NativeProtocol extends AbstractProtocol<NativePacketPayload> implem
                 blobSendChunkSize.setValue(allowedBlobSendChunkSize);
             }
         }
+    }
+
+    @Override
+    public void setRedirectionData(RedirectionData redirectionData) {
+        this.redirectionData = redirectionData;
+    }
+
+    @Override
+    public RedirectionData getRedirectionData() {
+        return redirectionData;
     }
 }
