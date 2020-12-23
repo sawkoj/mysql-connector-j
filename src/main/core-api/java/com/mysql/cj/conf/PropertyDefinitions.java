@@ -173,6 +173,10 @@ public class PropertyDefinitions {
         CATALOG, SCHEMA;
     }
 
+    public enum RedirectionOption {
+        OFF, ON, PREFERRED;
+    }
+
     /**
      * Static unmodifiable {@link PropertyKey} -&gt; {@link PropertyDefinition} map.
      */
@@ -244,6 +248,9 @@ public class PropertyDefinitions {
 
                 new StringPropertyDefinition(PropertyKey.ldapServerHostname, DEFAULT_VALUE_NULL_STRING, RUNTIME_MODIFIABLE,
                         Messages.getString("ConnectionProperties.ldapServerHostname"), "8.0.23", CATEGORY_CONNECTION, Integer.MIN_VALUE),
+
+                new EnumPropertyDefinition<>(PropertyKey.enableRedirect, RedirectionOption.OFF, RUNTIME_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.enableRedirect"), "8.0.23", CATEGORY_CONNECTION, Integer.MIN_VALUE),
 
                 //
                 // CATEGORY_SESSION
