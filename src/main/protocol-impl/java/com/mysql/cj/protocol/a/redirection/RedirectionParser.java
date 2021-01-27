@@ -66,11 +66,11 @@ public class RedirectionParser {
 		String port = String.valueOf(hostInfo.getPort());
 		String user = hostInfo.getUser();
 		Map<String, String> hostProperties = hostInfo.getHostProperties();
-		String ttl = hostProperties.get("ttl");
+		String ttl = hostProperties.getOrDefault("ttl", "0");
 		hostProperties = prepareRedirectionProperties(hostProperties);
 		RedirectionData redirectionData = null;
-		if (!StringUtils.isNullOrEmpty(host) && !StringUtils.isNullOrEmpty(port) && !StringUtils.isNullOrEmpty(user)
-				&& !StringUtils.isNullOrEmpty(ttl) && isNumeric(ttl)) {
+		if (!StringUtils.isNullOrEmpty(host) && !StringUtils.isNullOrEmpty(port) && isNumeric(port)
+				&& !StringUtils.isNullOrEmpty(user) && isNumeric(ttl)) {
 			redirectionData = new RedirectionData(host, Integer.parseInt(port), user, Integer.parseInt(ttl),
 					hostProperties);
 		}
