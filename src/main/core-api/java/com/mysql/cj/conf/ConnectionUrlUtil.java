@@ -167,4 +167,17 @@ public class ConnectionUrlUtil {
 		}
 		return "";
 	}
+
+	/**
+	 * This method removes [] brackets from hostname if they're present
+	 *
+	 * @param host hostname with possible square brackets
+	 * @return cleaned hostname
+	 */
+	public static String handleSquareBracketsInHost(String host) {
+		if (host.startsWith("[") && host.endsWith("]")) {
+			return host.substring(1, host.length() - 1);
+		}
+		return host;
+	}
 }

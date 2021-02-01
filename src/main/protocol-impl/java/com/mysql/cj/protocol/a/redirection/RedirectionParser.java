@@ -30,6 +30,7 @@
 package com.mysql.cj.protocol.a.redirection;
 
 import com.mysql.cj.conf.ConnectionUrl;
+import com.mysql.cj.conf.ConnectionUrlUtil;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.util.StringUtils;
 
@@ -71,6 +72,7 @@ public class RedirectionParser {
 		RedirectionData redirectionData = null;
 		if (!StringUtils.isNullOrEmpty(host) && !StringUtils.isNullOrEmpty(port) && isNumeric(port)
 				&& !StringUtils.isNullOrEmpty(user) && isNumeric(ttl)) {
+			host = ConnectionUrlUtil.handleSquareBracketsInHost(host);
 			redirectionData = new RedirectionData(host, Integer.parseInt(port), user, Integer.parseInt(ttl),
 					hostProperties);
 		}
