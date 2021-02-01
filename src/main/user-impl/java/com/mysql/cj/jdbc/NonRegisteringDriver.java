@@ -327,20 +327,24 @@ public class NonRegisteringDriver implements java.sql.Driver {
         return connection;
     }
 
-    private JdbcConnection getRedirectConnection(ConnectionUrl connectionUrl, Properties info, JdbcConnection connection, RedirectionData redirectionData) throws SQLException {
+    private JdbcConnection getRedirectConnection(ConnectionUrl connectionUrl, Properties info, JdbcConnection connection, RedirectionData originalRedirectionData) throws SQLException {
         JdbcConnection redirectConnection = connection;
         HostInfo currentHost = connectionUrl.getMainHost();
+        RedirectionData redirectionData = originalRedirectionData;
+        HostInfo redirectHost;
         while (Objects.nonNull(redirectionData)) {
-            redirectionDataCache.put(currentHost, redirectionData);
             redirectionData = getCachedRedirectDataIfExists(redirectionData);
             String redirectURL = connectionUrl.getConnectionUrlParser().replaceOriginalUrlByRedirectionData(redirectionData, currentHost);
-            currentHost = ConnectionUrl.getConnectionUrlInstance(redirectURL, info).getMainHost();
+            redirectHost = ConnectionUrl.getConnectionUrlInstance(redirectURL, info).getMainHost();
             closeConnection(redirectConnection);
             try {
-                redirectConnection = ConnectionImpl.getInstance(currentHost);
+                redirectConnection = ConnectionImpl.getInstance(redirectHost);
+                redirectionDataCache.put(currentHost, redirectionData);
+                currentHost = redirectHost;
             } catch (SQLException e) {
                 System.out.println("Redirection failed: host: " + currentHost.toString());
                 redirectConnection = ConnectionImpl.getInstance(connectionUrl.getMainHost());
+                currentHost = connectionUrl.getMainHost();
             }
             redirectionData = redirectConnection.getSession().getRedirectionData();
         }
