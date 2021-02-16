@@ -46,7 +46,7 @@ public class RedirectionParser {
 
 	/**
 	 * Returns redirection data extracted and parsed from server response OK packet
-	 * 
+	 *
 	 * @param okInfo
 	 *            server response OK packet
 	 * @return Redirection data
@@ -62,7 +62,8 @@ public class RedirectionParser {
 	}
 
 	private static RedirectionData parseRedirectUrl(String redirect) {
-		HostInfo hostInfo = ConnectionUrl.getConnectionUrlInstance("jdbc:" + redirect, null).getMainHost();
+		String redirectUrl = addQuestionMarkIfNotPresent(redirect);
+		HostInfo hostInfo = ConnectionUrl.getConnectionUrlInstance("jdbc:" + redirectUrl, null).getMainHost();
 		String host = hostInfo.getHost();
 		String port = String.valueOf(hostInfo.getPort());
 		String user = hostInfo.getUser();
@@ -79,9 +80,18 @@ public class RedirectionParser {
 		return redirectionData;
 	}
 
+	private static String addQuestionMarkIfNotPresent(String redirect) {
+		if (!redirect.contains("?")) {
+			int queryStartIndex = redirect.lastIndexOf("/");
+			String query = redirect.substring(queryStartIndex + 1);
+			return redirect.substring(0, queryStartIndex + 1).concat("?").concat(query);
+		}
+		return redirect;
+	}
+
 	private static Map<String, String> prepareRedirectionProperties(Map<String, String> hostProperties) {
 		return hostProperties.entrySet().stream().filter(kv -> !StringUtils.isNullOrEmpty(kv.getValue()))
-				.filter(kv -> "ttl".equals(kv.getKey()))
+				.filter(kv -> !"ttl".equals(kv.getKey()))
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 	}
 
@@ -91,7 +101,7 @@ public class RedirectionParser {
 
 	/**
 	 * From given String extracts substring located between @begin and @end
-	 * 
+	 *
 	 * @param message
 	 *            given String
 	 * @param begin
@@ -107,7 +117,8 @@ public class RedirectionParser {
 			int endIndex = message.indexOf(end, beginningIndex);
 			if (endIndex > -1) {
 				return message.substring(beginningIndex, endIndex);
-			}
+			} else
+				return message.substring(beginningIndex);
 		}
 		return "";
 	}

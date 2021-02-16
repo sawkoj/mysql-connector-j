@@ -31,28 +31,75 @@ package com.mysql.cj.protocol.a.redirection;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class RedirectionParserTest {
 
-    /**
-     * Test if RedirectionParser parse correct message
-     */
     @Test
     void correctRedirectMessageTest() {
-        String redirectMessage = "Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10\n";
-        RedirectionData redirectionData = RedirectionParser.parseOkInfo(redirectMessage);
-        assertNotNull(redirectionData);
+        String redirectMessage = "Location: mysql://redirectHostName:1600/?user=redirectUserName&ttl=10\n";
+        check(redirectMessage, "redirectHostName", 1600, 10, "redirectUserName", Collections.emptyMap());
     }
 
-    /**
-     * Test if RedirectionParser parse incorrect message
-     */
     @Test
-    void incorrectRedirectMessageTest() {
+    void correctRedirectMessageTestWithoutTtl() {
+        String redirectMessage = "Location: mysql://redirectHostName:1600/?user=redirectUserName\n";
+        check(redirectMessage, "redirectHostName", 1600, 0, "redirectUserName", Collections.emptyMap());
+    }
+
+    @Test
+    void correctRedirectMessageTestWithoutEndingSign() {
+        String redirectMessage = "Location: mysql://redirectHostName:1600/?user=redirectUserName&ttl=10";
+        check(redirectMessage, "redirectHostName", 1600, 10, "redirectUserName", Collections.emptyMap());
+    }
+
+    @Test
+    void correctRedirectMessageTestWithoutEndingSignWithSquareBracketsHost() {
         String redirectMessage = "Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10";
+        check(redirectMessage, "redirectHostName", 1600, 10, "redirectUserName", Collections.emptyMap());
+    }
+
+    @Test
+    void correctRedirectMessageTestWithSquareBracketsHost() {
+        String redirectMessage = "Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10\n";
+        check(redirectMessage, "redirectHostName", 1600, 10, "redirectUserName", Collections.emptyMap());
+    }
+
+    @Test
+    void correctRedirectMessageTestWithoutQuestionSign() {
+        String redirectMessage = "Location: mysql://redirectHostName:1600/user=redirectUserName&ttl=10\n";
+        check(redirectMessage, "redirectHostName", 1600, 10, "redirectUserName", Collections.emptyMap());
+    }
+
+    @Test
+    void correctRedirectMessageTestWithoutQuestionSignWithoutEndingSign() {
+        String redirectMessage = "ASDLocation: mysql://redirectHostName:1600/user=redirectUserName&ttl=10";
+        check(redirectMessage, "redirectHostName", 1600, 10, "redirectUserName", Collections.emptyMap());
+    }
+
+    @Test
+    void correctRedirectMessageTestWithoutAzure() {
+        String redirectMessage = "Location: mysql://c33fd3a678a2.tr13845.eastus1-a.worker.database.windows.net:16012/user=mysql@c33fd3a678a2";
+        check(redirectMessage, "c33fd3a678a2.tr13845.eastus1-a.worker.database.windows.net", 16012, 0, "mysql@c33fd3a678a2", Collections.emptyMap());
+    }
+
+    @Test
+    void incorrectRedirectMessageTestBadLocationStarter() {
+        String redirectMessage = "LocationA: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10";
         RedirectionData redirectionData = RedirectionParser.parseOkInfo(redirectMessage);
         assertNull(redirectionData);
+    }
+
+    private void check(String redirectUrl, String hostName, int port, int ttl, String username, Map<String, String> properties) {
+        RedirectionData redirectionData = RedirectionParser.parseOkInfo(redirectUrl);
+        assertEquals(redirectionData.getHost(), hostName);
+        assertEquals(redirectionData.getPort(), port);
+        assertEquals(redirectionData.getTtl(), ttl);
+        assertEquals(redirectionData.getUser(), username);
+        assertEquals(redirectionData.getProperties(), properties);
     }
 
 }
