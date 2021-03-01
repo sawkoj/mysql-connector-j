@@ -36,6 +36,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for {@link RedirectionParser}
+ */
 class RedirectionParserTest {
 
     @Test
