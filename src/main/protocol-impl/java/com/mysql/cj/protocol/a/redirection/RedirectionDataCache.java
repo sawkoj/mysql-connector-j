@@ -41,14 +41,10 @@ import com.mysql.cj.conf.HostInfo;
  */
 public class RedirectionDataCache {
 
-	private static RedirectionDataCache INSTANCE = null;
-	private long maxSize;
+	private static RedirectionDataCache instance = null;
+	private final long maxSize;
+	private static final int INFINITY_SIZE = -1;
 	private final ConcurrentMap<String, RedirectionDataCacheItem> redirectDataCache;
-
-	RedirectionDataCache() {
-		this.maxSize = -1;
-		this.redirectDataCache = new ConcurrentHashMap<>();
-	}
 
 	RedirectionDataCache(long maxSize) {
 		this.maxSize = maxSize;
@@ -57,43 +53,61 @@ public class RedirectionDataCache {
 
 	/**
 	 * Returned instance of RedirectionCache
-	 * 
+	 *
 	 * @return RedirectionCache instance
 	 */
-	public synchronized static RedirectionDataCache getInstance() {
-		if (Objects.isNull(INSTANCE)) {
-			INSTANCE = new RedirectionDataCache();
-		}
-		return INSTANCE;
+	public static synchronized RedirectionDataCache getInstance() {
+		return getInstance(INFINITY_SIZE);
 	}
 
 	/**
 	 * Returned instance of RedirectionCache with maximum size
-	 * 
-	 * @param maxSize
-	 *            maximum size of cache
 	 *
+	 * @param maxSize maximum size of cache
 	 * @return RedirectionCache instance
 	 */
-	public synchronized static RedirectionDataCache getInstance(long maxSize) {
-		if (Objects.isNull(INSTANCE)) {
-			INSTANCE = new RedirectionDataCache(maxSize);
-		} else {
-			INSTANCE.maxSize = maxSize;
+	public static synchronized RedirectionDataCache getInstance(long maxSize) {
+		if (Objects.isNull(instance)) {
+			instance = new RedirectionDataCache(maxSize);
 		}
-		return INSTANCE;
+		return instance;
+	}
+
+	/**
+	 * Determine final redirection based on RedirectDataCache, as well as Host to which we are currently connected to.
+	 *
+	 * @param currentHost     Host to which we are currently connected to.
+	 * @param redirectionData Redirection data that was received from OkPacket from current server
+	 * @return Returns null if redirectionData is pointing to current host, or return correct value from redirect's chain
+	 */
+	public synchronized RedirectionData determineFinalRedirection(HostInfo currentHost, RedirectionData redirectionData) {
+		RedirectionData cachedRedirect = redirectionData;
+		RedirectionData temp;
+		// determine if there is path in cache for given redirect information
+		while (Objects.nonNull(cachedRedirect)) {
+			// cache is pointing to current location, return null and do not perform redirection
+			if (compareRedirectDataCacheEntries(currentHost, cachedRedirect)) {
+				return null;
+			}
+			temp = get(cachedRedirect);
+			// current cachedRedirect is not pointing to any location stored in cache, redirect to that location
+			if (Objects.isNull(temp)) {
+				return cachedRedirect;
+			} else {
+				cachedRedirect = temp;
+			}
+		}
+		return null;
 	}
 
 	/**
 	 * Put redirection data into cache
-	 * 
-	 * @param hostInfo
-	 *            information obout original host
-	 * @param redirectionData
-	 *            redirection data
+	 *
+	 * @param hostInfo        information obout original host
+	 * @param redirectionData redirection data
 	 */
 	public void put(HostInfo hostInfo, RedirectionData redirectionData) {
-		if (this.maxSize == -1 || this.maxSize > -1 && this.redirectDataCache.size() <= this.maxSize) {
+		if (this.maxSize == INFINITY_SIZE || this.redirectDataCache.size() < this.maxSize) {
 			redirectDataCache.put(generateKey(hostInfo),
 					new RedirectionDataCacheItem(redirectionData, Instant.now().getEpochSecond()));
 		}
@@ -102,9 +116,8 @@ public class RedirectionDataCache {
 	/**
 	 * Returns redirection data for given host information or null if not exits in
 	 * cache or expire
-	 * 
-	 * @param hostInfo
-	 *            information about host
+	 *
+	 * @param hostInfo information about host
 	 * @return Redirection data or null
 	 */
 	public RedirectionData get(HostInfo hostInfo) {
@@ -112,10 +125,33 @@ public class RedirectionDataCache {
 	}
 
 	/**
+	 * Returns redirection data for another redirection data (information about
+	 * host) or null if not exits in cache or expire
+	 *
+	 * @param redirectionData redirection data (information about host)
+	 * @return Redirection data
+	 */
+	public RedirectionData get(RedirectionData redirectionData) {
+		return this.get(generateKey(redirectionData));
+	}
+
+	/**
+	 * Compares HostInfo instance with RedirectionData instance
+	 *
+	 * @param hostInfo        HostInfo instance to compare
+	 * @param redirectionData RedirectionData instance to compare
+	 * @return True if hostInfo has the same user, host and port as redirectionData
+	 */
+	public boolean compareRedirectDataCacheEntries(HostInfo hostInfo, RedirectionData redirectionData) {
+		return hostInfo.getUser().equals(redirectionData.getUser()) &&
+				hostInfo.getHost().equals(redirectionData.getHost()) &&
+				hostInfo.getPort() == redirectionData.getPort();
+	}
+
+	/**
 	 * Generate cache key from information about host
-	 * 
-	 * @param hostInfo
-	 *            information about host
+	 *
+	 * @param hostInfo information about host
 	 * @return Cache key
 	 */
 	private String generateKey(HostInfo hostInfo) {
@@ -123,22 +159,9 @@ public class RedirectionDataCache {
 	}
 
 	/**
-	 * Returns redirection data for another redirection data (information about
-	 * host) or null if not exits in cache or expire
-	 * 
-	 * @param redirectionData
-	 *            redirection data (information about host)
-	 * @return Redirection data
-	 */
-	public RedirectionData get(RedirectionData redirectionData) {
-		return get(generateKey(redirectionData));
-	}
-
-	/**
 	 * Generate cache key from redirection data
-	 * 
-	 * @param redirectionData
-	 *            redirection data
+	 *
+	 * @param redirectionData redirection data
 	 * @return Cache key
 	 */
 	private String generateKey(RedirectionData redirectionData) {
@@ -150,12 +173,22 @@ public class RedirectionDataCache {
 		if (Objects.isNull(redirectionDataCacheItem)) {
 			return null;
 		}
-		if (Instant.now().getEpochSecond() > redirectionDataCacheItem.getStorageTime()
-				+ redirectionDataCacheItem.getRedirectionData().getTtl()) {
+		if (validateRedirectCacheEntry(redirectionDataCacheItem)) {
 			this.invalidate(key);
 			return null;
 		}
 		return redirectionDataCacheItem.getRedirectionData();
+	}
+
+	/**
+	 * Checks if entry in redirectDataCache should be invalidated
+	 *
+	 * @param entry Entry from redirectDataCache
+	 * @return true if it should be removed from collection, false if not
+	 */
+	private boolean validateRedirectCacheEntry(RedirectionDataCacheItem entry) {
+		long entryValidTime = entry.getStorageTime() + entry.getRedirectionData().getTtl();
+		return Instant.now().getEpochSecond() >= entryValidTime;
 	}
 
 	private void invalidate(String key) {

@@ -322,6 +322,9 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 closeConnection(connection);
                 throw ExceptionFactory.createException(Messages.getString("Connection.RedirectFailedForRedirectEnableON"));
             }
+            if (redirectionDataCache.compareRedirectDataCacheEntries(currentHost, redirectionData)) {
+                return connection;
+            }
             connection = getRedirectConnection(connectionUrl, info, connection, redirectionData);
         }
         return connection;
@@ -332,8 +335,9 @@ public class NonRegisteringDriver implements java.sql.Driver {
         HostInfo currentHost = connectionUrl.getMainHost();
         RedirectionData redirectionData = originalRedirectionData;
         HostInfo redirectHost;
-        while (Objects.nonNull(redirectionData)) {
-            redirectionData = getCachedRedirectDataIfExists(redirectionData);
+        int maxRedirects = 3;
+        int i = 0;
+        while (Objects.nonNull(redirectionData) && i < maxRedirects) {
             String redirectURL = connectionUrl.getConnectionUrlParser().replaceOriginalUrlByRedirectionData(redirectionData, currentHost);
             redirectHost = ConnectionUrl.getConnectionUrlInstance(redirectURL, info).getMainHost();
             closeConnection(redirectConnection);
@@ -342,23 +346,13 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 redirectionDataCache.put(currentHost, redirectionData);
                 currentHost = redirectHost;
             } catch (SQLException e) {
-                System.out.println("Redirection failed: host: " + currentHost.toString());
-                redirectConnection = ConnectionImpl.getInstance(connectionUrl.getMainHost());
-                currentHost = connectionUrl.getMainHost();
+                System.out.printf("Redirection failed: host: %s, Attempt nr: %d %n", redirectHost, i);
+                redirectConnection = ConnectionImpl.getInstance(currentHost);
+                i++;
             }
-            redirectionData = redirectConnection.getSession().getRedirectionData();
+            redirectionData = redirectionDataCache.determineFinalRedirection(currentHost, redirectConnection.getSession().getRedirectionData());
         }
         return redirectConnection;
-    }
-
-    private RedirectionData getCachedRedirectDataIfExists(RedirectionData redirectionData) {
-        RedirectionData redirect = redirectionData, tempRedirect;
-        tempRedirect = redirectionDataCache.get(redirect);
-        while (Objects.nonNull(tempRedirect)) {
-            redirect = tempRedirect;
-            tempRedirect = redirectionDataCache.get(redirect);
-        }
-        return redirect;
     }
 
     private void closeConnection(JdbcConnection connection) {
