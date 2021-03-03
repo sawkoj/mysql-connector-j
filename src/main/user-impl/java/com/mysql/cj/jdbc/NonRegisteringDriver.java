@@ -314,12 +314,10 @@ public class NonRegisteringDriver implements java.sql.Driver {
     private JdbcConnection getConnection(ConnectionUrl connectionUrl, Properties info) throws SQLException {
         HostInfo currentHost = connectionUrl.getMainHost();
         JdbcConnection connection = ConnectionImpl.getInstance(currentHost);
-        String redirectionEnableProperty = currentHost.getHostProperties().get(PropertyKey.enableRedirect.toString());
-        if (RedirectionOption.ON.toString().equalsIgnoreCase(redirectionEnableProperty) ||
-                RedirectionOption.PREFERRED.toString().equalsIgnoreCase(redirectionEnableProperty)) {
+        RedirectionOption redirectionEnableProperty = (RedirectionOption) connection.getPropertySet().getEnumProperty(PropertyKey.enableRedirect).getValue();
+        if (RedirectionOption.OFF != redirectionEnableProperty) {
             RedirectionData redirectionData = connection.getSession().getRedirectionData();
-            if (Objects.isNull(redirectionData) &&
-                    RedirectionOption.ON.toString().equalsIgnoreCase(redirectionEnableProperty)) {
+            if (Objects.isNull(redirectionData) && RedirectionOption.ON == redirectionEnableProperty) {
                 closeConnection(connection);
                 throw ExceptionFactory.createException(Messages.getString("Connection.RedirectFailedForRedirectEnableON"));
             }
