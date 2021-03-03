@@ -269,7 +269,8 @@ public enum PropertyKey {
 
     yearIsDateType("yearIsDateType", true), //
     zeroDateTimeBehavior("zeroDateTimeBehavior", true), //
-    enableRedirect("enableRedirect", true) //
+    enableRedirect("enableRedirect", true), //
+    maxRedirectRetries("maxRedirectRetries", true)
     ;
 
     private String keyName;

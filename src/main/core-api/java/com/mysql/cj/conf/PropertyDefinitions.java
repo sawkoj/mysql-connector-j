@@ -252,6 +252,9 @@ public class PropertyDefinitions {
                 new EnumPropertyDefinition<>(PropertyKey.enableRedirect, RedirectionOption.OFF, RUNTIME_MODIFIABLE,
                         Messages.getString("ConnectionProperties.enableRedirect"), "8.0.23", CATEGORY_CONNECTION, Integer.MIN_VALUE),
 
+                new IntegerPropertyDefinition(PropertyKey.maxRedirectRetries, 3, RUNTIME_MODIFIABLE,
+                        Messages.getString("ConnectionProperties.maxRedirectRetries"), "8.0.23", CATEGORY_CONNECTION, Integer.MIN_VALUE),
+
                 //
                 // CATEGORY_SESSION
                 //

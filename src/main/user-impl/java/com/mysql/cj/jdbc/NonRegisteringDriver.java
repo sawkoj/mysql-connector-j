@@ -46,6 +46,7 @@ import com.mysql.cj.conf.ConnectionUrl.Type;
 import com.mysql.cj.conf.HostInfo;
 import com.mysql.cj.conf.PropertyDefinitions.RedirectionOption;
 import com.mysql.cj.conf.PropertyKey;
+import com.mysql.cj.conf.RuntimeProperty;
 import com.mysql.cj.exceptions.CJException;
 import com.mysql.cj.exceptions.ExceptionFactory;
 import com.mysql.cj.exceptions.UnableToConnectException;
@@ -333,9 +334,9 @@ public class NonRegisteringDriver implements java.sql.Driver {
         HostInfo currentHost = connectionUrl.getMainHost();
         RedirectionData redirectionData = originalRedirectionData;
         HostInfo redirectHost;
-        int maxRedirects = 3;
+        int maxRedirectRetries = getMaxNumberOfRedirects(connection);
         int i = 0;
-        while (Objects.nonNull(redirectionData) && i < maxRedirects) {
+        while (Objects.nonNull(redirectionData) && i < maxRedirectRetries) {
             String redirectURL = connectionUrl.getConnectionUrlParser().replaceOriginalUrlByRedirectionData(redirectionData, currentHost);
             redirectHost = ConnectionUrl.getConnectionUrlInstance(redirectURL, info).getMainHost();
             closeConnection(redirectConnection);
@@ -359,5 +360,10 @@ public class NonRegisteringDriver implements java.sql.Driver {
         } catch (SQLException throwable) {
             System.out.println("Can not connect original connection: " + throwable.getMessage());
         }
+    }
+
+    private int getMaxNumberOfRedirects(JdbcConnection connection) {
+        RuntimeProperty<Integer> maxRedirectRetries = connection.getPropertySet().getIntegerProperty(PropertyKey.maxRedirectRetries);
+        return maxRedirectRetries.getValue() <= 0 ? maxRedirectRetries.getPropertyDefinition().getDefaultValue() : maxRedirectRetries.getValue();
     }
 }
