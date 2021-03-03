@@ -322,9 +322,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 closeConnection(connection);
                 throw ExceptionFactory.createException(Messages.getString("Connection.RedirectFailedForRedirectEnableON"));
             }
-            if (redirectionDataCache.compareRedirectDataCacheEntries(currentHost, redirectionData)) {
-                return connection;
-            }
+            redirectionData = redirectionDataCache.determineRedirectionUponCache(currentHost, redirectionData);
             connection = getRedirectConnection(connectionUrl, info, connection, redirectionData);
         }
         return connection;
@@ -350,7 +348,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 redirectConnection = ConnectionImpl.getInstance(currentHost);
                 i++;
             }
-            redirectionData = redirectionDataCache.determineFinalRedirection(currentHost, redirectConnection.getSession().getRedirectionData());
+            redirectionData = redirectionDataCache.shouldContinueRedirect(currentHost, redirectConnection.getSession().getRedirectionData());
         }
         return redirectConnection;
     }

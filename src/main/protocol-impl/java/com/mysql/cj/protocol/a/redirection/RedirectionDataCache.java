@@ -74,13 +74,31 @@ public class RedirectionDataCache {
 	}
 
 	/**
+	 * Checks if redirection should be continued.
+	 *
+	 * @param currentHost     currentHost HostInfo instance
+	 * @param redirectionData redirectionData RedirectionData instance
+	 * @return Returns null if redirection should be stopped, that's when currentHost is pointing to redirectionData, or redirection data is already present in cache, else it
+	 * returns passed redirectionData.
+	 */
+	public synchronized RedirectionData shouldContinueRedirect(HostInfo currentHost, RedirectionData redirectionData) {
+		// cache is pointing to current location, return null and do not perform redirection
+		if (compareRedirectDataCacheEntries(currentHost, redirectionData)) {
+			return null;
+		}
+		RedirectionData cachedRedirect = get(redirectionData);
+		// if redirectionData is present in cache, do not perform redirect
+		return Objects.isNull(cachedRedirect) ? redirectionData : null;
+	}
+
+	/**
 	 * Determine final redirection based on RedirectDataCache, as well as Host to which we are currently connected to.
 	 *
 	 * @param currentHost     Host to which we are currently connected to.
 	 * @param redirectionData Redirection data that was received from OkPacket from current server
 	 * @return Returns null if redirectionData is pointing to current host, or return correct value from redirect's chain
 	 */
-	public synchronized RedirectionData determineFinalRedirection(HostInfo currentHost, RedirectionData redirectionData) {
+	public synchronized RedirectionData determineRedirectionUponCache(HostInfo currentHost, RedirectionData redirectionData) {
 		RedirectionData cachedRedirect = redirectionData;
 		RedirectionData temp;
 		// determine if there is path in cache for given redirect information
@@ -142,7 +160,7 @@ public class RedirectionDataCache {
 	 * @param redirectionData RedirectionData instance to compare
 	 * @return True if hostInfo has the same user, host and port as redirectionData
 	 */
-	public boolean compareRedirectDataCacheEntries(HostInfo hostInfo, RedirectionData redirectionData) {
+	private boolean compareRedirectDataCacheEntries(HostInfo hostInfo, RedirectionData redirectionData) {
 		return hostInfo.getUser().equals(redirectionData.getUser()) &&
 				hostInfo.getHost().equals(redirectionData.getHost()) &&
 				hostInfo.getPort() == redirectionData.getPort();
