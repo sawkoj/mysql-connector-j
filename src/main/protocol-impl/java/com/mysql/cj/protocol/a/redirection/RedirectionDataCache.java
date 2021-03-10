@@ -83,7 +83,7 @@ public class RedirectionDataCache {
 	 */
 	public synchronized RedirectionData shouldContinueRedirect(HostInfo currentHost, RedirectionData redirectionData) {
 		// cache is pointing to current location, return null and do not perform redirection
-		if (compareRedirectDataCacheEntries(currentHost, redirectionData)) {
+		if (Objects.isNull(redirectionData) || compareRedirectDataCacheEntries(currentHost, redirectionData)) {
 			return null;
 		}
 		RedirectionData cachedRedirect = get(redirectionData);
