@@ -190,7 +190,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3307, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertNull(finalRedirectionData);
     }
 
@@ -199,7 +199,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3317, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertNull(finalRedirectionData);
     }
 
@@ -208,7 +208,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3327, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertNull(finalRedirectionData);
     }
 
@@ -217,7 +217,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3337, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertNull(finalRedirectionData);
     }
 
@@ -227,7 +227,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3307, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), finalRedirectionData);
     }
 
@@ -236,7 +236,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3317, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), finalRedirectionData);
     }
 
@@ -245,7 +245,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3327, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), finalRedirectionData);
     }
 
@@ -254,7 +254,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(LENGTHY_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3337, LENGTHY_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), finalRedirectionData);
     }
 
@@ -264,7 +264,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3307, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
     }
 
@@ -273,7 +273,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3317, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
     }
 
@@ -282,7 +282,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3327, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
     }
 
@@ -291,7 +291,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(3337);
         RedirectionData redirectionData = prepareRedirectionData(3337, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertNull(finalRedirectionData);
     }
 
@@ -301,7 +301,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3307, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
     }
 
@@ -310,7 +310,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3317, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
     }
 
@@ -319,7 +319,7 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3327, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
     }
 
@@ -328,8 +328,74 @@ class RedirectionDataCacheTest {
         prepareRedirectCacheData(ZERO_TTL);
         HostInfo hostInfoD = prepareHostInfo(8000);
         RedirectionData redirectionData = prepareRedirectionData(3337, ZERO_TTL);
-        RedirectionData finalRedirectionData = redirectionDataCache.determineRedirectionUponCache(hostInfoD, redirectionData);
+        RedirectionData finalRedirectionData = redirectionDataCache.determineFinalRedirectionUponCache(hostInfoD, redirectionData);
         assertEquals(redirectionData, finalRedirectionData);
+    }
+
+    // TEST INITIAL REDIRECTION WITH LENGTHY_TTL
+    @Test
+    void testABCDInitialRedirectFromAValidTtl() {
+        prepareRedirectCacheData(LENGTHY_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3307);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), initialRedirectUponCache);
+    }
+
+    @Test
+    void testABCDInitialRedirectFromBValidTtl() {
+        prepareRedirectCacheData(LENGTHY_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3317);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), initialRedirectUponCache);
+    }
+
+    @Test
+    void testABCDInitialRedirectFromCValidTtl() {
+        prepareRedirectCacheData(LENGTHY_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3327);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertEquals(prepareRedirectionData(3337, LENGTHY_TTL), initialRedirectUponCache);
+    }
+
+    @Test
+    void testABCDInitialRedirectFromDValidTtl() {
+        prepareRedirectCacheData(LENGTHY_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3337);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertNull(initialRedirectUponCache);
+    }
+
+    // TEST INITIAL REDIRECTION WITH ZERO_TTL
+    @Test
+    void testABCDInitialRedirectFromAInvalidTtl() {
+        prepareRedirectCacheData(ZERO_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3307);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertNull(initialRedirectUponCache);
+    }
+
+    @Test
+    void testABCDInitialRedirectFromBInvalidTtl() {
+        prepareRedirectCacheData(ZERO_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3317);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertNull(initialRedirectUponCache);
+    }
+
+    @Test
+    void testABCDInitialRedirectFromCInvalidTtl() {
+        prepareRedirectCacheData(ZERO_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3327);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertNull(initialRedirectUponCache);
+    }
+
+    @Test
+    void testABCDInitialRedirectFromDInvalidTtl() {
+        prepareRedirectCacheData(ZERO_TTL);
+        HostInfo hostInfoD = prepareHostInfo(3337);
+        RedirectionData initialRedirectUponCache = redirectionDataCache.determineInitialRedirectUponCache(hostInfoD);
+        assertNull(initialRedirectUponCache);
     }
 
     private void prepareRedirectCacheData(int ttl) {

@@ -44,6 +44,8 @@ import com.mysql.cj.Messages;
 import com.mysql.cj.conf.ConnectionUrl;
 import com.mysql.cj.conf.ConnectionUrl.Type;
 import com.mysql.cj.conf.HostInfo;
+import com.mysql.cj.conf.IntegerPropertyDefinition;
+import com.mysql.cj.conf.PropertyDefinitions;
 import com.mysql.cj.conf.PropertyDefinitions.RedirectionOption;
 import com.mysql.cj.conf.PropertyKey;
 import com.mysql.cj.conf.RuntimeProperty;
@@ -313,6 +315,11 @@ public class NonRegisteringDriver implements java.sql.Driver {
 
     private JdbcConnection getConnection(ConnectionUrl connectionUrl, Properties info) throws SQLException {
         HostInfo currentHost = connectionUrl.getMainHost();
+        if (Objects.nonNull(redirectionDataCache.get(currentHost)) &&
+                RedirectionOption.ON.toString().equalsIgnoreCase(connectionUrl.getConnectionUrlParser().getProperties().get(PropertyKey.enableRedirect.getKeyName()))) {
+            RedirectionData shortcutRedirectionData = redirectionDataCache.determineInitialRedirectUponCache(currentHost);
+            return getRedirectConnection(connectionUrl, info, null, shortcutRedirectionData);
+        }
         JdbcConnection connection = ConnectionImpl.getInstance(currentHost);
         RedirectionOption redirectionEnableProperty = (RedirectionOption) connection.getPropertySet().getEnumProperty(PropertyKey.enableRedirect).getValue();
         if (RedirectionOption.OFF != redirectionEnableProperty) {
@@ -342,6 +349,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 redirectConnection = ConnectionImpl.getInstance(redirectHost);
                 redirectionDataCache.put(currentHost, redirectionData);
                 currentHost = redirectHost;
+                System.out.println("REDIRECT SUCCESSFUL: " + redirectHost);
             } catch (SQLException e) {
                 System.out.printf("Redirection failed: host: %s, Attempt nr: %d %n", redirectHost, i);
                 redirectConnection = ConnectionImpl.getInstance(currentHost);
@@ -353,14 +361,20 @@ public class NonRegisteringDriver implements java.sql.Driver {
     }
 
     private void closeConnection(JdbcConnection connection) {
-        try {
-            connection.close();
-        } catch (SQLException throwable) {
-            System.out.println("Can not connect original connection: " + throwable.getMessage());
+        if (Objects.nonNull(connection)) {
+            try {
+                connection.close();
+            } catch (SQLException throwable) {
+                System.out.println("Could not close original connection: " + throwable.getMessage());
+            }
         }
     }
 
     private int getMaxNumberOfRedirects(JdbcConnection connection) {
+        if (Objects.isNull(connection)) {
+            IntegerPropertyDefinition propertyDefinition = (IntegerPropertyDefinition) PropertyDefinitions.getPropertyDefinition(PropertyKey.maxRedirectRetries);
+            return propertyDefinition.getDefaultValue();
+        }
         RuntimeProperty<Integer> maxRedirectRetries = connection.getPropertySet().getIntegerProperty(PropertyKey.maxRedirectRetries);
         return maxRedirectRetries.getValue() <= 0 ? maxRedirectRetries.getPropertyDefinition().getDefaultValue() : maxRedirectRetries.getValue();
     }

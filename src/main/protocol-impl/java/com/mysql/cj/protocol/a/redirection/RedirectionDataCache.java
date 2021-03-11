@@ -96,23 +96,37 @@ public class RedirectionDataCache {
 	 *
 	 * @param currentHost     Host to which we are currently connected to.
 	 * @param redirectionData Redirection data that was received from OkPacket from current server
-	 * @return Returns null if redirectionData is pointing to current host, or return correct value from redirect's chain
+	 * @return Returns null if redirectionData is pointing to current host or if it's circular redirect, else returns correct value from redirect's chain
 	 */
-	public synchronized RedirectionData determineRedirectionUponCache(HostInfo currentHost, RedirectionData redirectionData) {
-		RedirectionData cachedRedirect = redirectionData;
+	public synchronized RedirectionData determineFinalRedirectionUponCache(HostInfo currentHost, RedirectionData redirectionData) {
+		return getFinalRedirectionDataFromCache(currentHost, redirectionData);
+	}
+
+	/**
+	 * Determine, if in cache there is final redirection for currentHost.
+	 *
+	 * @param currentHost Host to which we should primary connect to.
+	 * @return Returns null if redirectionData is pointing to current host or if it's circular redirect, else returns correct value from redirect's chain
+	 */
+	public synchronized RedirectionData determineInitialRedirectUponCache(HostInfo currentHost) {
+		RedirectionData cachedRedirect = get(currentHost);
+		return getFinalRedirectionDataFromCache(currentHost, cachedRedirect);
+	}
+
+	private RedirectionData getFinalRedirectionDataFromCache(HostInfo currentHost, RedirectionData redirectionData) {
 		RedirectionData temp;
 		// determine if there is path in cache for given redirect information
-		while (Objects.nonNull(cachedRedirect)) {
+		while (Objects.nonNull(redirectionData)) {
 			// cache is pointing to current location, return null and do not perform redirection
-			if (compareRedirectDataCacheEntries(currentHost, cachedRedirect)) {
+			if (compareRedirectDataCacheEntries(currentHost, redirectionData)) {
 				return null;
 			}
-			temp = get(cachedRedirect);
+			temp = get(redirectionData);
 			// current cachedRedirect is not pointing to any location stored in cache, redirect to that location
 			if (Objects.isNull(temp)) {
-				return cachedRedirect;
+				return redirectionData;
 			} else {
-				cachedRedirect = temp;
+				redirectionData = temp;
 			}
 		}
 		return null;
