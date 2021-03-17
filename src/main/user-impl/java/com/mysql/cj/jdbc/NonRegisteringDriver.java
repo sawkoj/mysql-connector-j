@@ -328,7 +328,7 @@ public class NonRegisteringDriver implements java.sql.Driver {
                 closeConnection(connection);
                 throw ExceptionFactory.createException(Messages.getString("Connection.RedirectFailedForRedirectEnableON"));
             }
-            redirectionData = redirectionDataCache.determineRedirectionUponCache(currentHost, redirectionData);
+            redirectionData = redirectionDataCache.determineFinalRedirectionUponCache(currentHost, redirectionData);
             connection = getRedirectConnection(connectionUrl, info, connection, redirectionData);
         }
         return connection;
